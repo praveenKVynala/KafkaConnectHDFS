@@ -1,0 +1,122 @@
+curl -X POST -H "Content-Type: application/json" --data '{"name": "IRIS_DATASET_AVRO",
+ "config": {
+"connector.class":"io.confluent.connect.hdfs.HdfsSinkConnector",
+"format.class":"io.confluent.connect.hdfs.parquet.ParquetFormat",
+"tasks.max":"1",
+"topics":"IRIS_DATASET_AVRO",
+"hdfs.url":"hdfs://localhost:9000/",
+"flush.size":"3",
+"hadoop.conf.dir":"/usr/lib/spark/conf/",
+"hive.integration":"true",
+ "hive.conf.dir":"/usr/lib/spark/conf/",
+"hive.metastore.uris":"jdbc:mysql://localhost:3306/metastore",
+"schema.compatibility":"BACKWARD",
+"key.converter":"io.confluent.connect.avro.AvroConverter",
+"key.converter.schema.registry.url":"http://localhost:8081",
+"value.converter":"io.confluent.connect.avro.AvroConverter",
+"value.converter.schema.registry.url":"http://localhost:8081",
+"key.converter.schemas.enable":"false",
+"value.converter.schemas.enable":"true",
+"confluent.topic.bootstrap.servers":"localhost:9092"
+
+
+ }
+}' http://localhost:8083/connectors
+
+
+
+
+
+
+
+
+curl -X POST -H "Content-Type: application/json" --data '{"name": "IRIS_DATASET_AVRO_T2",
+ "config": {
+"connector.class":"io.confluent.connect.hdfs.HdfsSinkConnector",
+"format.class":"io.confluent.connect.hdfs.parquet.ParquetFormat",
+"partitioner.class":"io.confluent.connect.hdfs.partitioner.TimeBasedPartitioner",
+    "partition.duration.ms":"1800000",
+    "path.format":"YYYYMMdd",
+    "locale":"kor",
+    "timezone":"Asia/Seoul",
+"tasks.max":"1",
+"topics":"IRIS_DATASET_AVRO_T2",
+"hdfs.url":"hdfs://localhost:9000/",
+"flush.size":"3",
+"hadoop.conf.dir":"/usr/lib/spark/conf/",
+"key.converter":"io.confluent.connect.avro.AvroConverter",
+"key.converter.schema.registry.url":"http://localhost:8081",
+"value.converter":"io.confluent.connect.avro.AvroConverter",
+"value.converter.schema.registry.url":"http://localhost:8081",
+"key.converter.schemas.enable":"false",
+"value.converter.schemas.enable":"true",
+"confluent.topic.bootstrap.servers":"localhost:9092"
+
+ }
+}' http://localhost:8083/connectors
+
+
+
+curl -X POST -H "Content-Type: application/json" --data '{"name": "IRIS_DATASET_AVRO_T5",
+ "config": {
+"connector.class":"io.confluent.connect.hdfs.HdfsSinkConnector",
+"format.class":"io.confluent.connect.hdfs.parquet.ParquetFormat",
+"partitioner.class":"io.confluent.connect.hdfs.partitioner.DailyPartitioner",
+    "locale":"kor",
+    "timezone":"Asia/Seoul",
+"tasks.max":"1",
+"topics":"IRIS_DATASET_AVRO_T5",
+"hdfs.url":"hdfs://localhost:9000/",
+"flush.size":"3",
+"hadoop.conf.dir":"/usr/lib/spark/conf/",
+"key.converter":"org.apache.kafka.connect.storage.StringConverter",
+"value.converter":"io.confluent.connect.avro.AvroConverter",
+"value.converter.schema.registry.url":"http://localhost:8081",
+"key.converter.schemas.enable":"false",
+"value.converter.schemas.enable":"true",
+"confluent.topic.bootstrap.servers":"localhost:9092"
+
+ }
+}' http://localhost:8083/connectors
+
+
+ksql http://localhost:9088
+
+
+kafka-console-producer --broker-list localhost:9092 --topic IRIS_DATASET </home/hduser/Desktop/iris_json.json
+
+
+CREATE STREAM IRIS_DATASET (class varchar, petallength varchar, petalwidth varchar, sepallength varchar,sepalwidth varchar) WITH
+(kafka_topic='IRIS_DATASET', value_format='JSON');
+
+
+CREATE STREAM IRIS_DATASET_AVRO_T2 with (VALUE_FORMAT='avro') as select class,petallength,petalwidth,sepallength,sepalwidth from IRIS_DATASET;
+
+CREATE STREAM IRIS_DATASET_AVRO_T3 with (VALUE_FORMAT='avro') as select class,petallength,petalwidth,sepallength,sepalwidth from IRIS_DATASET;
+
+
+CREATE STREAM IRIS_DATASET_AVRO_T4 with (VALUE_FORMAT='avro') as select class,petallength,petalwidth,sepallength,sepalwidth from IRIS_DATASET;
+
+
+CREATE EXTERNAL TABLE IRIS_DATASET_TAB(class string, petallength string, petalwidth string, sepallength string,sepalwidth string)
+STORED AS PARQUET
+LOCATION '/topics/IRIS_DATASET_AVRO_T2/'
+
+CREATE EXTERNAL TABLE IRIS_DATASET_TAB1(class string, petallength string, petalwidth string, sepallength string,sepalwidth string)
+PARTITIONED BY (mis_dt string)
+STORED AS PARQUET
+LOCATION '/topics/IRIS_DATASET_AVRO_T3/'
+
+
+#Unable to see data in hive 
+CREATE EXTERNAL TABLE IRIS_DATASET_TAB5(class string, petallength string, petalwidth string, sepallength string,sepalwidth string)
+PARTITIONED BY (year int, month int, day int)
+STORED AS PARQUET
+LOCATION '/topics/IRIS_DATASET_AVRO_T5';
+
+
+
+CREATE STREAM IRIS_DATASET_JSON_T1 with (VALUE_FORMAT='json') as select class,petallength,petalwidth,sepallength,sepalwidth from IRIS_DATASET;
+
+
+PARTITIONED BY (year int, month int, day int)
